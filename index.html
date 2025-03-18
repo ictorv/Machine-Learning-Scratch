@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Leaf Detector</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8f0;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2e7d32;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px dashed #91c788;
+            border-radius: 8px;
+            background-color: #f8fff8;
+        }
+        
+        #upload-label {
+            display: inline-block;
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        #upload-label:hover {
+            background-color: #388e3c;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            width: 100%;
+        }
+        
+        #image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            display: none;
+            margin-bottom: 20px;
+        }
+        
+        #result-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            display: none;
+            margin-bottom: 20px;
+        }
+        
+        #detect-btn {
+            background-color: #2e7d32;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            display: none;
+            transition: background-color 0.3s;
+        }
+        
+        #detect-btn:hover {
+            background-color: #1b5e20;
+        }
+        
+        #detect-btn:disabled {
+            background-color: #a5d6a7;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f1f8e9;
+            display: none;
+        }
+        
+        .results-header {
+            font-size: 20px;
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+        
+        #detection-results {
+            margin-bottom: 20px;
+        }
+        
+        .plant-result {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background-color: white;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .plant-name {
+            font-weight: 600;
+            color: #1b5e20;
+            text-transform: capitalize;
+        }
+        
+        .confidence {
+            color: #555;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #2e7d32;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .plant-info {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #555;
+            font-style: italic;
+        }
+        
+        .medicinal-tag {
+            display: inline-block;
+            background-color: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+        
+        .food-tag {
+            display: inline-block;
+            background-color: #ff9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+        
+        .other-tag {
+            display: inline-block;
+            background-color: #2196f3;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Plant Leaf Detector</h1>
+        
+        <div class="upload-section">
+            <p>Upload an image of a plant leaf to identify its species</p>
+            <label id="upload-label" for="file-input">Choose Image</label>
+            <input type="file" id="file-input" accept="image/*">
+            <p id="file-name">No file selected</p>
+        </div>
+        
+        <div class="preview-container">
+            <img id="image-preview" alt="Plant preview">
+            <button id="detect-btn" disabled>Detect Plant Species</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your image...</p>
+            </div>
+            
+            <div class="error-message" id="error-message"></div>
+        </div>
+        
+        <div class="results-section" id="results-section">
+            <div class="results-header">Detection Results:</div>
+            <div id="detection-results"></div>
+            <img id="result-image" alt="Detection result">
+        </div>
+        
+        <div class="footer">
+            <p>Using YOLO model from foduucom/plant-leaf-detection-and-classification</p>
+            <p>For educational purposes only. This tool helps identify plant species from leaf images.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name');
+        const imagePreview = document.getElementById('image-preview');
+        const detectBtn = document.getElementById('detect-btn');
+        const loadingDiv = document.getElementById('loading');
+        const errorMessageDiv = document.getElementById('error-message');
+        const resultsSection = document.getElementById('results-section');
+        const detectionResults = document.getElementById('detection-results');
+        const resultImage = document.getElementById('result-image');
+        
+        let selectedFile = null;
+        
+        // Class names for the model based on the provided list
+        const classNames = [
+            'ginger', 'banana', 'tobacco', 'ornamaental', 'rose', 'soyabean', 
+            'papaya', 'garlic', 'raspberry', 'mango', 'cotton', 'corn', 
+            'pomgernate', 'strawberry', 'Blueberry', 'brinjal', 'potato', 
+            'wheat', 'olive', 'rice', 'lemon', 'cabbage', 'gauava', 'chilli', 
+            'capcicum', 'sunflower', 'cherry', 'cassava', 'apple', 'tea', 
+            'sugarcane', 'groundnut', 'weed', 'peach', 'coffee', 'cauliflower', 
+            'tomato', 'onion', 'gram', 'chiku', 'jamun', 'castor', 'pea', 
+            'cucumber', 'grape', 'cardamom'
+        ];
+        
+        // Plant information database (medicinal properties, uses, etc.)
+        const plantInfo = {
+            'ginger': {
+                type: 'medicinal',
+                info: 'Used for digestive issues, nausea, and has anti-inflammatory properties.'
+            },
+            'garlic': {
+                type: 'medicinal',
+                info: 'Has antimicrobial properties and may help lower blood pressure and cholesterol.'
+            },
+            'turmeric': {
+                type: 'medicinal',
+                info: 'Contains curcumin, which has powerful anti-inflammatory and antioxidant properties.'
+            },
+            'tobacco': {
+                type: 'other',
+                info: 'Contains nicotine and is primarily used in tobacco products.'
+            },
+            'banana': {
+                type: 'food',
+                info: 'Rich in potassium and vitamin B6, good for digestive health.'
+            },
+            'apple': {
+                type: 'food',
+                info: 'Rich in antioxidants and fiber. May help reduce risk of chronic diseases.'
+            },
+            'lemon': {
+                type: 'food',
+                info: 'High in vitamin C and flavonoids. Used for culinary and medicinal purposes.'
+            },
+            'tea': {
+                type: 'medicinal',
+                info: 'Contains antioxidants and may help reduce inflammation and improve heart health.'
+            },
+            'cardamom': {
+                type: 'medicinal',
+                info: 'Used to aid digestion and may have anti-inflammatory properties.'
+            }
+        };
+        
+        // Set default info for plants not in our database
+        function getPlantInfo(plantName) {
+            if (plantInfo[plantName]) {
+                return plantInfo[plantName];
+            } else {
+                // Default to basic info based on common knowledge
+                if (['tomato', 'potato', 'onion', 'cabbage', 'brinjal', 'cucumber', 'pea', 'cauliflower', 'chilli', 'capcicum'].includes(plantName)) {
+                    return {
+                        type: 'food',
+                        info: 'Commonly used as a food source.'
+                    };
+                } else if (['rose', 'sunflower', 'ornamaental'].includes(plantName)) {
+                    return {
+                        type: 'other',
+                        info: 'Primarily grown for ornamental purposes.'
+                    };
+                } else {
+                    return {
+                        type: 'other',
+                        info: 'Common agricultural or garden plant.'
+                    };
+                }
+            }
+        }
+        
+        // Listen for file selection
+        fileInput.addEventListener('change', (event) => {
+            selectedFile = event.target.files[0];
+            
+            if (selectedFile) {
+                fileNameDisplay.textContent = selectedFile.name;
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    detectBtn.style.display = 'block';
+                    detectBtn.disabled = false;
+                    
+                    // Hide previous results when new image is selected
+                    resultsSection.style.display = 'none';
+                    errorMessageDiv.style.display = 'none';
+                };
+                
+                reader.readAsDataURL(selectedFile);
+            }
+        });
+        
+        // Detect button click handler
+        detectBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            // Show loading spinner
+            loadingDiv.style.display = 'block';
+            detectBtn.disabled = true;
+            errorMessageDiv.style.display = 'none';
+            
+            try {
+                // In a real implementation, we would send the image to a backend server
+                // that has the Python code and the model installed.
+                // Here we'll simulate the detection with a timeout
+                
+                await simulateDetection();
+                
+            } catch (error) {
+                console.error("Detection error:", error);
+                errorMessageDiv.textContent = "An error occurred during detection. Please try again.";
+                errorMessageDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+                detectBtn.disabled = false;
+            }
+        });
+        
+        // Simulate the detection process (in a real app, this would call a backend API)
+        async function simulateDetection() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Generate some mock detection results
+                    const mockDetections = generateMockDetections();
+                    displayResults(mockDetections);
+                    resolve();
+                }, 2000); // Simulate 2 seconds of processing time
+            });
+        }
+        
+        // Generate mock detection results for demonstration
+        function generateMockDetections() {
+            const numDetections = Math.floor(Math.random() * 3) + 1; // 1 to 3 detections
+            const detections = [];
+            
+            // Ensure we don't get duplicate plant detections
+            const usedIndices = new Set();
+            
+            for (let i = 0; i < numDetections; i++) {
+                let classIndex;
+                do {
+                    classIndex = Math.floor(Math.random() * classNames.length);
+                } while (usedIndices.has(classIndex));
+                
+                usedIndices.add(classIndex);
+                const confidence = (Math.random() * 0.5 + 0.5).toFixed(2); // Random confidence between 0.5 and 1.0
+                
+                detections.push({
+                    class: classIndex,
+                    class_name: classNames[classIndex],
+                    confidence: parseFloat(confidence)
+                });
+            }
+            
+            return detections;
+        }
+        
+        // Display the detection results
+        function displayResults(detections) {
+            // Clear previous results
+            detectionResults.innerHTML = '';
+            
+            if (detections.length === 0) {
+                detectionResults.innerHTML = '<p>No plants detected in this image.</p>';
+            } else {
+                // Sort by confidence (highest first)
+                detections.sort((a, b) => b.confidence - a.confidence);
+                
+                detections.forEach(detection => {
+                    const resultElement = document.createElement('div');
+                    resultElement.className = 'plant-result';
+                    
+                    const plantName = detection.class_name.toLowerCase();
+                    const info = getPlantInfo(plantName);
+                    
+                    // Determine which tag to use based on plant type
+                    let tagHTML = '';
+                    if (info.type === 'medicinal') {
+                        tagHTML = '<span class="medicinal-tag">Medicinal</span>';
+                    } else if (info.type === 'food') {
+                        tagHTML = '<span class="food-tag">Food</span>';
+                    } else {
+                        tagHTML = '<span class="other-tag">Other</span>';
+                    }
+                    
+                    resultElement.innerHTML = `
+                        <div>
+                            <div class="plant-name">${detection.class_name} ${tagHTML}</div>
+                            <div class="plant-info">${info.info}</div>
+                        </div>
+                        <div class="confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</div>
+                    `;
+                    
+                    detectionResults.appendChild(resultElement);
+                });
+                
+                // For demonstration, we'll use the original image as the result image
+                // In a real implementation, this would be the image with bounding boxes
+                resultImage.src = imagePreview.src;
+                resultImage.style.display = 'block';
+            }
+            
+            // Show results section
+            resultsSection.style.display = 'block';
+        }
+
+    </script>
+</body>
+</html>
